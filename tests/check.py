@@ -18,6 +18,10 @@ ROOT = os.path.dirname(HERE)
 EXE = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "build", "DriftWatch.exe")
 FAILURES = []
 
+# Windows consoles default to a code page that can't print characters such as "→".
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 
 def run(*args):
     cmd = [EXE] if os.name == "nt" else ["mono", EXE]
