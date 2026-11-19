@@ -1,0 +1,55 @@
+name: Build and test
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build with the .NET Framework compiler
+        shell: pwsh
+        run: ./build.ps1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run end-to-end tests
+        shell: pwsh
+        run: |
+          python -m pip install --quiet lxml
+          python tests/check.py build/DriftWatch.exe
+
+      - name: Package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Copy-Item build/DriftWatch.exe, README.md, LICENSE, PRIVACY.md dist/
+          Compress-Archive -Path dist/* -DestinationPath DriftWatch.zip -Force
+          (Get-FileHash DriftWatch.zip -Algorithm SHA256).Hash.ToLower() + '  DriftWatch.zip' | Out-File -Encoding ascii SHA256SUMS.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DriftWatch
+          path: |
+            DriftWatch.zip
+            SHA256SUMS.txt
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            DriftWatch.zip
+            SHA256SUMS.txt
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          generate_release_notes: true
