@@ -1,0 +1,8 @@
+build/
+*.user
+.vs/
+bin/
+obj/
+__pycache__/
+tests/fixtures/
+tests/demo/
